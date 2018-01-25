@@ -25,7 +25,8 @@ class FLP:
                       [0, 0, 0, 0, 4, 4, 0], [0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 1],
                       [0, 0, 0, 0, 0, 0, 0]]
 
-        seven_area = [16, 16, 36, 9, 9, 9]
+        self.seven_area = [16, 16, 32, 9, 9, 9, 9]
+        self.penalty = 50
 
     def read_data(self):
         pass
@@ -39,13 +40,21 @@ class FLP:
             self._particles_y.append(y)
 
     def find_pbest(self):
-
         for i in range(0, self._n_partic):
             temp_value = 0
             for j in range(0, self._dept):
                 for k in range(0, self._dept):
-                    temp_value += np.linalg.norm(self._particles_x[i][j] - self._particles_x[i][k]) * self._seven_cost[j][k]
-                    temp_value += np.linalg.norm(self._particles_y[i][j] - self._particles_y[i][k]) * self._seven_cost[j][k]
+                    distx = np.linalg.norm(self._particles_x[i][j] - self._particles_x[i][k])
+                    disty = np.linalg.norm(self._particles_y[i][j] - self._particles_y[i][k])
+
+                    if distx < self.seven_area[j]/2 + self.seven_area[k]/2:
+                        temp_value += self.penalty
+
+                    if disty < self.seven_area[j] / 2 + self.seven_area[k]/2:
+                        temp_value += self.penalty
+
+                    temp_value += distx * self._seven_cost[j][k]
+                    temp_value += disty * self._seven_cost[j][k]
 
             if len(self._pbest_x) < i + 1:
                 self._pbest_x.append(self._particles_x[i])
@@ -55,9 +64,7 @@ class FLP:
                 pass
         print('pbest: ', self._pbest_value)
 
-
     def find_gbest(self):
-
         for index, value in enumerate(self._pbest_value):
             if self._gbest_value is None:
                 self._gbest_x = self._pbest_x[index]
@@ -70,13 +77,17 @@ class FLP:
 
             print('gbest: ', self._gbest_value)
 
+    def get_better(self):
+        for i in range(0, self._dept):
+            pass
 
     def generate_graph(self, gbest_index=0):
         subp = pylab.subplot()
 
         for i in range(0, self._dept):
             print(self._particles_x[gbest_index][i], self._particles_y[gbest_index][i])
-            circle = pylab.Circle((self._particles_x[gbest_index][i], self._particles_y[gbest_index][i]), radius=2, fill=False, clip_on=False)
+            circle = pylab.Circle((self._particles_x[gbest_index][i], self._particles_y[gbest_index][i]),
+                                  radius=self.seven_area[i], fill=False, clip_on=False)
             subp.add_artist(circle)
 
         pylab.xlim(0, self._x_bound)
