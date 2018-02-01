@@ -1,102 +1,105 @@
 import numpy as np
 import pylab
+import random as r
+from scipy.spatial import distance
+from copy import copy
 
 
-class FLP:
+class Department:
 
-    def __init__(self):
-        self._x_bound = 100
-        self._y_bound = 100
-        self._n_partic = 10
-        self._dept = 7
+    def __init__(self, index=None, x=0, y=0):
+        self.x = x
+        self.y = y
+        self.index = index
 
-        self._particles_x = []
-        self._particles_y = []
+    def __repr__(self):
+        return 'x %s,   y %s' % (self.x, self.y)
 
-        self._pbest_x = []
-        self._pbest_y = []
-        self._pbest_value = []
 
-        self._gbest_x = None
-        self._gbest_y = None
-        self._gbest_value = None
+class Particle:
 
-        self._seven_cost = [[0, 0, 0, 5, 0, 0, 1], [0, 0, 0, 3, 0, 0, 1], [0, 0, 0, 2, 0, 0, 1],
-                      [0, 0, 0, 0, 4, 4, 0], [0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 1],
-                      [0, 0, 0, 0, 0, 0, 0]]
+    def __init__(self, index=None, department_list=[], value=None):
+        self.departments = department_list
+        self.total_cost = value
+        self.index = index
 
-        self.seven_area = [16, 16, 32, 9, 9, 9, 9]
-        self.penalty = 50
+    def __repr__(self):
+        return 'Index %d  | Cost %d' % (self.index, self.total_cost)
 
-    def read_data(self):
-        pass
 
-    def randomize_start(self):
-        for i in range(0, self._n_partic):
-            x = np.random.rand(self._dept) * self._x_bound
-            y = np.random.rand(self._dept) * self._y_bound
-            print(len(x), len(y))
-            self._particles_x.append(x)
-            self._particles_y.append(y)
+x_bound = 100
+y_bound = 100
+particle_number = 100
+department_number = 7
 
-    def find_pbest(self):
-        for i in range(0, self._n_partic):
-            temp_value = 0
-            for j in range(0, self._dept):
-                for k in range(0, self._dept):
-                    distx = np.linalg.norm(self._particles_x[i][j] - self._particles_x[i][k])
-                    disty = np.linalg.norm(self._particles_y[i][j] - self._particles_y[i][k])
+particles = []
 
-                    if distx < self.seven_area[j]/2 + self.seven_area[k]/2:
-                        temp_value += self.penalty
+particles_best = []
 
-                    if disty < self.seven_area[j] / 2 + self.seven_area[k]/2:
-                        temp_value += self.penalty
+global_best_x = None
+global_best_y = None
+global_best_value = None
 
-                    temp_value += distx * self._seven_cost[j][k]
-                    temp_value += disty * self._seven_cost[j][k]
+seven_cost = [[0, 0, 0, 5, 0, 0, 1], [0, 0, 0, 3, 0, 0, 1], [0, 0, 0, 2, 0, 0, 1],
+              [0, 0, 0, 0, 4, 4, 0], [0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 1],
+              [0, 0, 0, 0, 0, 0, 0]]
 
-            if len(self._pbest_x) < i + 1:
-                self._pbest_x.append(self._particles_x[i])
-                self._pbest_y.append(self._particles_y[i])
-                self._pbest_value.append(temp_value)
-            else:
-                pass
-        print('pbest: ', self._pbest_value)
+seven_area = [16, 16, 32, 9, 9, 9, 9]
+penalty = 5000
 
-    def find_gbest(self):
-        for index, value in enumerate(self._pbest_value):
-            if self._gbest_value is None:
-                self._gbest_x = self._pbest_x[index]
-                self._gbest_y = self._pbest_y[index]
-                self._gbest_value = value
-            elif value < self._gbest_value:
-                self._gbest_x = self._pbest_x[index]
-                self._gbest_y = self._pbest_y[index]
-                self._gbest_value = value
 
-            print('gbest: ', self._gbest_value)
+def initialize_data(part=[]):
+    for particles_index in range(0, particle_number):
+        line = []
+        for dept_index in range(0, department_number):
+            dept = Department(dept_index, np.random.random(1)[0], np.random.rand(1)[0])
+            line.append(dept)
+        particula = Particle(particles_index, line.copy, None)
+        part.append(particula)
+    return part
 
-    def get_better(self):
-        for i in range(0, self._dept):
+
+def find_particle_best(part=[], pbest=[]):
+    for particle_index, particle in enumerate(part):
+        print('\npart====')
+        particle_value = 0
+        for dept1 in particle.departments():
+            for dept2 in particle.departments():
+                if dept1.index != dept2.index:
+                    euclidean_distance = distance.euclidean((dept1.x, dept1.y), (dept2.x, dept2.y))
+                    print(euclidean_distance)
+                    particle_value += euclidean_distance * seven_cost[dept1.index][dept2.index]
+
+        print('Particle Value: %d' % particle_value)
+        particle.total_cost = particle_value
+
+        if len(pbest) < particle_index + 1:
+            print('Primeiro loop')
+            pbest.append(copy(particle))
+        elif particle_value < pbest[particle_index].total_cost:
             pass
 
-    def generate_graph(self, gbest_index=0):
-        subp = pylab.subplot()
 
-        for i in range(0, self._dept):
-            print(self._particles_x[gbest_index][i], self._particles_y[gbest_index][i])
-            circle = pylab.Circle((self._particles_x[gbest_index][i], self._particles_y[gbest_index][i]),
-                                  radius=self.seven_area[i], fill=False, clip_on=False)
-            subp.add_artist(circle)
-
-        pylab.xlim(0, self._x_bound)
-        pylab.ylim(0, self._y_bound)
-        pylab.show()
+def find_global_best(particle_best = []):
+    best_found = None
+    for particle in particles_best:
+        if best_found is None:
+            best_found = copy(particle)
+        elif particle.total_cost < best_found.total_cost:
+            best_found = copy(particle)
+    print('\nBest found: ', best_found)
 
 
-flp = FLP()
-flp.randomize_start()
-flp.find_pbest()
-flp.find_gbest()
-flp.generate_graph()
+def get_better():
+    pass
+
+
+def print_particle_best(particles=[]):
+    for part in particles:
+        print(part)
+
+
+particles = initialize_data()
+find_particle_best(particles, particles_best)
+print_particle_best(particles_best)
+find_global_best(particles_best)
