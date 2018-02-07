@@ -7,9 +7,10 @@ from copy import copy
 
 class Department:
 
-    def __init__(self, index=None, x=0, y=0):
+    def __init__(self, index=None, x=0, y=0, radius=None):
         self.x = x
         self.y = y
+        self.radius = radius
         self.index = index
 
     def __repr__(self):
@@ -38,15 +39,15 @@ particles_best = []
 
 global_best = None
 
-seven_cost = [[0, 0, 0, 5, 0, 0, 1], [0, 0, 0, 3, 0, 0, 1], [0, 0, 0, 2, 0, 0, 1],
+cost = [[0, 0, 0, 5, 0, 0, 1], [0, 0, 0, 3, 0, 0, 1], [0, 0, 0, 2, 0, 0, 1],
               [0, 0, 0, 0, 4, 4, 0], [0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 1],
               [0, 0, 0, 0, 0, 0, 0]]
 
-seven_area = [16, 16, 32, 9, 9, 9, 9]
+area = [16, 16, 32, 9, 9, 9, 9]
 penalty = 5000
 
 
-def initialize_data(part=[]):
+def initialize_data(part=[], area=[]):
     """
     Randomly starts the data according to predefined variables.
     :param part: 
@@ -56,17 +57,13 @@ def initialize_data(part=[]):
     for particles_index in range(0, particle_number):
         line = []
         for dept_index in range(0, department_number):
-            dept = Department(dept_index, np.random.random(1)[0] * x_bound, np.random.rand(1)[0] * y_bound)
+            dept = Department(dept_index,
+                              r.uniform(0 + area[dept_index]/2, x_bound - area[dept_index]/2),
+                              r.uniform(0 + area[dept_index]/2, y_bound - area[dept_index]/2), area[dept_index])
             line.append(dept)
-        #print_line(line)
         particula = Particle(particles_index, line.copy, None)
         part.append(particula)
     return part
-
-
-def print_line(line = []):
-    for dept in line:
-        print(dept)
 
 
 def find_particle_best(part=[], pbest=[]):
@@ -79,26 +76,22 @@ def find_particle_best(part=[], pbest=[]):
     :return: 
     """
     for particle_index, particle in enumerate(part):
-        print('\npart====')
         particle_value = 0
         for dept1 in particle.departments():
             for dept2 in particle.departments():
                 if dept1.index != dept2.index:
                     euclidean_distance = distance.euclidean((dept1.x, dept1.y), (dept2.x, dept2.y))
-                    print(euclidean_distance)
-                    particle_value += euclidean_distance * seven_cost[dept1.index][dept2.index]
+                    particle_value += euclidean_distance * cost[dept1.index][dept2.index]
 
-                    if euclidean_distance < seven_area[dept1.index]/2 + seven_area[dept2.index]/2:
+                    if euclidean_distance < dept1.radius/2 + dept2.radius/2:
                         particle_value += 50
 
-        print('Particle Value: %d' % particle_value)
         particle.total_cost = particle_value
 
         if len(pbest) < particle_index + 1:
-            print('Primeiro loop')
             pbest.append(copy(particle))
         elif particle_value < pbest[particle_index].total_cost:
-            pass
+            pbest[particle_index] = copy(particle)
 
 
 def find_global_best(particle_best=[]):
@@ -118,8 +111,17 @@ def find_global_best(particle_best=[]):
     return best_found
 
 
-def get_better():
-    pass
+def get_better(p=[]):
+    for part in p:
+        for dept in part.departments():
+            if bool(r.getrandbits(1)):
+                #rand_x = r.randint(0, department_number - 1)
+                #rand_y = r.randint(0, department_number - 1)
+
+                dept.x = r.uniform(0 + dept.radius/2, x_bound - dept.radius/2)
+                dept.y = r.uniform(0 + dept.radius/2, y_bound - dept.radius/2)
+            else:
+                pass
 
 
 def print_particle_best(particles_list=[]):
@@ -133,14 +135,16 @@ def show_graph(global_b=[]):
     pylab.ylim(0, y_bound)
 
     for dep in global_b.departments():
-        print("x = %d,  y = %d" % (dep.x, dep.y))
-        circle = pylab.Circle((dep.x, dep.y), radius=seven_area[dep.index])
+        print("x = %d,  y = %d, radius = %d" % (dep.x, dep.y, dep.radius))
+        circle = pylab.Circle((dep.x, dep.y), radius=dep.radius, fill=False)
         subplot.add_artist(circle)
 
     pylab.show()
 
-particles = initialize_data()
-find_particle_best(particles, particles_best)
-print_particle_best(particles_best)
-result = find_global_best(particles_best)
+particles = initialize_data([], area)
+
+for counter in range(0, 20):
+    find_particle_best(particles, particles_best)
+    result = find_global_best(particles_best)
+    get_better(particles)
 show_graph(result)

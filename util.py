@@ -1,4 +1,6 @@
 import copy
+import random as r
+import numpy as np
 
 class Teste:
 
@@ -13,7 +15,8 @@ t = Teste(10)
 list = []
 list.append(t)
 
-print(list[0].value)
+#print(list[0].value)
+print(np.random.random(5))
 
 
 '''
